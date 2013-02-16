@@ -1,10 +1,13 @@
 module AWSSNSSubscription
   module Confirmer
     extend ActiveSupport::Concern
+    class MessageWasNotAuthentic < StandardError; end
 
     def respond_to_aws_sns_subscription_confirmations
       if request.headers["x-amz-sns-message-type"] == "SubscriptionConfirmation"
-        HTTParty.get JSON.parse(request.raw_post)["SubscribeURL"]
+        sns = SNS.new(request.raw_post)
+        raise MessageWasNotAuthentic unless sns.authentic?
+        HTTParty.get sns.subscribe_url
         head :ok and return
       end
     end
